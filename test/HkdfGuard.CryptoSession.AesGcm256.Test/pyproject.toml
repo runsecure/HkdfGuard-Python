@@ -1,0 +1,15 @@
+[project]
+name = "hkdfguard-cryptosession-aesgcm256-test"
+version = "0.1.0"
+description = "Tests for hkdfguard-cryptosession-aesgcm256."
+requires-python = ">=3.11"
+dependencies = [
+    "hkdfguard-cryptosession-aesgcm256",
+    "pytest>=8.0",
+]
+
+[tool.uv.sources]
+hkdfguard-cryptosession-aesgcm256 = { workspace = true }
+
+[tool.uv]
+package = false

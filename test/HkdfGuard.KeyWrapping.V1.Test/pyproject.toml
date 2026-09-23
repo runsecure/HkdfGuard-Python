@@ -1,0 +1,15 @@
+[project]
+name = "hkdfguard-keywrapping-v1-test"
+version = "0.1.0"
+description = "Tests for hkdfguard-keywrapping-v1."
+requires-python = ">=3.11"
+dependencies = [
+    "hkdfguard-keywrapping-v1",
+    "pytest>=8.0",
+]
+
+[tool.uv.sources]
+hkdfguard-keywrapping-v1 = { workspace = true }
+
+[tool.uv]
+package = false

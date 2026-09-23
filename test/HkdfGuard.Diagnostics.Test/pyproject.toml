@@ -1,0 +1,16 @@
+[project]
+name = "hkdfguard-diagnostics-test"
+version = "0.1.0"
+description = "Tests for hkdfguard-diagnostics."
+requires-python = ">=3.11"
+dependencies = [
+    "hkdfguard-diagnostics",
+    "opentelemetry-sdk>=1.27",
+    "pytest>=8.0",
+]
+
+[tool.uv.sources]
+hkdfguard-diagnostics = { workspace = true }
+
+[tool.uv]
+package = false

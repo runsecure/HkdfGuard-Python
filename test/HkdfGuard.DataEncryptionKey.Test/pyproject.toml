@@ -1,0 +1,19 @@
+[project]
+name = "hkdfguard-dataencryptionkey-test"
+version = "0.1.0"
+description = "Tests for hkdfguard-dataencryptionkey."
+requires-python = ">=3.11"
+dependencies = [
+    "hkdfguard-abstractions",
+    "hkdfguard-cryptosession-aesgcm256",
+    "hkdfguard-dataencryptionkey",
+    "pytest>=8.0",
+]
+
+[tool.uv.sources]
+hkdfguard-abstractions = { workspace = true }
+hkdfguard-cryptosession-aesgcm256 = { workspace = true }
+hkdfguard-dataencryptionkey = { workspace = true }
+
+[tool.uv]
+package = false

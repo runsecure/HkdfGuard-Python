@@ -1,0 +1,22 @@
+[project]
+name = "hkdfguard-cache-test"
+version = "0.1.0"
+description = "Tests for hkdfguard-cache."
+requires-python = ">=3.11"
+dependencies = [
+    "hkdfguard-abstractions",
+    "hkdfguard-cache",
+    "hkdfguard-cryptosession-aesgcm256",
+    "hkdfguard-dataencryptionkey",
+    "opentelemetry-sdk>=1.27",
+    "pytest>=8.0",
+]
+
+[tool.uv.sources]
+hkdfguard-abstractions = { workspace = true }
+hkdfguard-cache = { workspace = true }
+hkdfguard-cryptosession-aesgcm256 = { workspace = true }
+hkdfguard-dataencryptionkey = { workspace = true }
+
+[tool.uv]
+package = false
