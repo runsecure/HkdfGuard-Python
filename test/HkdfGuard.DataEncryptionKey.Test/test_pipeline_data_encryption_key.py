@@ -4,49 +4,30 @@ import secrets
 
 import pytest
 from cryptography.exceptions import InvalidTag
-from hkdfguard_cryptosession_aesgcm256 import AesGcmCryptoProvider
+from hkdfguard_cryptosession_aesgcm256 import AesGcmCryptoProviderFactory
 from hkdfguard_dataencryptionkey import PipelineDataEncryptionKey
+from test_helpers.fake_key_wrapper import FakeKeyWrapper
+
+_CRYPTO_PROVIDER_FACTORY = AesGcmCryptoProviderFactory()
 
 
-def _session_provider_factory(key_wrapper, wrapped):
-    return AesGcmCryptoProvider(key_wrapper, wrapped, 60)
+def _create_key(dek: bytearray | None = None) -> PipelineDataEncryptionKey:
+    if dek is None:
+        dek = bytearray(secrets.token_bytes(32))
+    provider = _CRYPTO_PROVIDER_FACTORY.create_for_pipeline(FakeKeyWrapper(secrets.token_bytes(32)), dek)
+    return PipelineDataEncryptionKey(provider, dek)
 
 
-def test_constructor_with_no_dek_supplied_generates_a_random_32_byte_dek() -> None:
-    with PipelineDataEncryptionKey(_session_provider_factory) as key:
-        dek = key.as_bytearray()
-        assert len(dek) == 32
-        assert any(b != 0 for b in dek)
-
-
-def test_constructor_with_no_dek_supplied_generates_a_different_dek_each_time() -> None:
-    with (
-        PipelineDataEncryptionKey(_session_provider_factory) as key1,
-        PipelineDataEncryptionKey(_session_provider_factory) as key2,
-    ):
-        assert bytes(key1.as_bytearray()) != bytes(key2.as_bytearray())
-
-
-def test_constructor_with_supplied_dek_uses_it_as_is() -> None:
+def test_as_bytearray_returns_the_supplied_dek() -> None:
     dek = bytearray(secrets.token_bytes(32))
     expected = bytes(dek)
 
-    with PipelineDataEncryptionKey(_session_provider_factory, dek) as key:
+    with _create_key(dek) as key:
         assert bytes(key.as_bytearray()) == expected
 
 
-def test_constructor_with_empty_dek_raises() -> None:
-    with pytest.raises(ValueError):
-        PipelineDataEncryptionKey(_session_provider_factory, bytearray(32))
-
-
-def test_constructor_with_wrong_size_dek_raises() -> None:
-    with pytest.raises(ValueError):
-        PipelineDataEncryptionKey(_session_provider_factory, bytearray(secrets.token_bytes(16)))
-
-
 def test_encrypt_decrypt_round_trips() -> None:
-    with PipelineDataEncryptionKey(_session_provider_factory) as key:
+    with _create_key() as key:
         plaintext = bytearray(b"top secret")
         expected = bytes(plaintext)
 
@@ -59,7 +40,7 @@ def test_encrypt_decrypt_round_trips() -> None:
 
 
 def test_encrypt_decrypt_with_aad_round_trips() -> None:
-    with PipelineDataEncryptionKey(_session_provider_factory) as key:
+    with _create_key() as key:
         plaintext = bytearray(b"top secret")
         expected = bytes(plaintext)
         aad = b"context"
@@ -72,18 +53,15 @@ def test_encrypt_decrypt_with_aad_round_trips() -> None:
 
 
 def test_decrypt_with_mismatched_aad_raises() -> None:
-    with PipelineDataEncryptionKey(_session_provider_factory) as key:
+    with _create_key() as key:
         encrypted = key.encrypt(bytearray(b"top secret"), b"context-a")
 
         with pytest.raises(InvalidTag):
             key.decrypt(encrypted, bytearray(16), b"context-b")
 
 
-def test_two_instances_with_different_generated_deks_cannot_decrypt_each_others_ciphertext() -> None:
-    with (
-        PipelineDataEncryptionKey(_session_provider_factory) as key1,
-        PipelineDataEncryptionKey(_session_provider_factory) as key2,
-    ):
+def test_two_instances_with_different_deks_cannot_decrypt_each_others_ciphertext() -> None:
+    with _create_key() as key1, _create_key() as key2:
         encrypted = key1.encrypt(bytearray(b"top secret"))
 
         with pytest.raises(InvalidTag):
@@ -91,8 +69,18 @@ def test_two_instances_with_different_generated_deks_cannot_decrypt_each_others_
 
 
 def test_close_zeroes_the_dek() -> None:
-    key = PipelineDataEncryptionKey(_session_provider_factory)
+    dek = bytearray(secrets.token_bytes(32))
+    key = _create_key(dek)
 
     key.close()
 
-    assert bytes(key.as_bytearray()) == bytes(32)
+    assert bytes(dek) == bytes(32)
+
+
+def test_close_does_not_raise() -> None:
+    # Regression test: AesGcmCryptoProvider's pipeline-only constructor used to leave its
+    # background-refresh-thread field unset, which crashed close once PipelineDataEncryptionKey
+    # started closing its provider.
+    key = _create_key()
+
+    key.close()

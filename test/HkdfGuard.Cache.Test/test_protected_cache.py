@@ -24,8 +24,8 @@ from test_helpers.sensitive_logging_scope import sensitive_logging_scope
 
 def _create_cache() -> IProtectedCache:
     wrapper = FakeKeyWrapper(secrets.token_bytes(32))
-    data_protection_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
-    return ProtectedCache(data_protection_key)
+    data_encryption_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
+    return ProtectedCache(data_encryption_key)
 
 
 def test_add_decrypt_bytes_round_trips() -> None:
@@ -294,8 +294,8 @@ def test_concurrent_add_with_same_name_exactly_one_succeeds() -> None:
 
 def test_add_with_null_logger_still_works() -> None:
     wrapper = FakeKeyWrapper(secrets.token_bytes(32))
-    data_protection_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
-    cache = ProtectedCache(data_protection_key, logger=None)
+    data_encryption_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
+    cache = ProtectedCache(data_encryption_key, logger=None)
 
     cache.add("item", bytearray(b"value"))  # should not raise
 
@@ -305,10 +305,10 @@ def test_add_with_logger_and_sensitive_logging_enabled_logs_sensitive_operation(
 ) -> None:
     with sensitive_logging_scope(True):
         wrapper = FakeKeyWrapper(secrets.token_bytes(32))
-        data_protection_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
+        data_encryption_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
         logger = logging.getLogger("hkdfguard-cache-test.add-sensitive")
         logger.setLevel(logging.DEBUG)
-        cache = ProtectedCache(data_protection_key, logger)
+        cache = ProtectedCache(data_encryption_key, logger)
 
         with caplog.at_level(logging.DEBUG, logger=logger.name):
             cache.add("item", bytearray(b"value"))
@@ -323,10 +323,10 @@ def test_add_with_logger_when_duplicate_name_raises_logs_operation_failed(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     wrapper = FakeKeyWrapper(secrets.token_bytes(32))
-    data_protection_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
+    data_encryption_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
     logger = logging.getLogger("hkdfguard-cache-test.add-duplicate")
     logger.setLevel(logging.DEBUG)
-    cache = ProtectedCache(data_protection_key, logger)
+    cache = ProtectedCache(data_encryption_key, logger)
     cache.add("item", bytearray(b"first"))
 
     with caplog.at_level(logging.DEBUG, logger=logger.name), pytest.raises(ValueError):

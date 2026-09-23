@@ -18,11 +18,13 @@ is an interruptible sleep-and-tick loop, exactly mirroring the .NET side's cance
 import threading
 
 from hkdfguard_abstractions import ICryptoProvider, IKeyWrapper
+from hkdfguard_abstractions.array_utility import zero_memory
 from hkdfguard_diagnostics import ActivityNames, ComponentTelemetry, HkdfGuardTelemetry
 
-from .session import AesGcmCryptoSession
+from .session import NONCE_SIZE, TAG_SIZE, AesGcmCryptoSession
 
 _KEY_LENGTH = 32
+_EXTRA_ALLOCATION_LENGTH = NONCE_SIZE + TAG_SIZE
 
 _TELEMETRY = HkdfGuardTelemetry.CRYPTO_SESSION_AES_GCM256
 
@@ -43,7 +45,7 @@ class AesGcmCryptoProvider(ICryptoProvider):
             raise ValueError(f"expiry_seconds must be between 1 and 300, got {expiry_seconds}.")
 
         self._key_wrapper = key_wrapper
-        self._wrapped = wrapped
+        self._wrapped = bytearray(wrapped)
         self._expiry_seconds = expiry_seconds
         self._gate = threading.Lock()
         self._stop_event = threading.Event()
@@ -51,8 +53,28 @@ class AesGcmCryptoProvider(ICryptoProvider):
 
         self._refresh()
 
-        self._refresh_thread = threading.Thread(target=self._run_refresh_loop, daemon=True)
+        self._refresh_thread: threading.Thread | None = threading.Thread(target=self._run_refresh_loop, daemon=True)
         self._refresh_thread.start()
+
+    @classmethod
+    def _for_pipeline(cls, key_wrapper: IKeyWrapper, not_wrapped: bytes) -> "AesGcmCryptoProvider":
+        """Builds a provider around not_wrapped directly - not_wrapped is already a plaintext
+        DEK, never wrapped or unwrapped through key_wrapper (held only for symmetry - never
+        called). There is no background refresh: the key never changes, so there is nothing to
+        refresh.
+
+        Package-private (leading underscore): only AesGcmCryptoProviderFactory.create_for_pipeline,
+        in this same package, is meant to call this.
+        """
+        self = cls.__new__(cls)
+        self._key_wrapper = key_wrapper
+        self._wrapped = bytearray(not_wrapped)
+        self._expiry_seconds = None
+        self._gate = threading.Lock()
+        self._stop_event = threading.Event()
+        self._current = AesGcmCryptoSession(self._wrapped)
+        self._refresh_thread = None
+        return self
 
     def encrypt(self, plaintext: bytearray, result: bytearray, aad: bytes = b"") -> int:
         session = self._current
@@ -65,6 +87,12 @@ class AesGcmCryptoProvider(ICryptoProvider):
         if session is None:
             raise ValueError("Operation on a closed AesGcmCryptoProvider.")
         return session.decrypt(ciphertext, result, aad)
+
+    def get_encrypted_allocation_length(self, length: int) -> int:
+        return length + _EXTRA_ALLOCATION_LENGTH
+
+    def get_decrypted_allocation_length(self, length: int) -> int:
+        return length - _EXTRA_ALLOCATION_LENGTH
 
     def _refresh(self) -> None:
         with self._gate:
@@ -88,8 +116,11 @@ class AesGcmCryptoProvider(ICryptoProvider):
                     ComponentTelemetry.record_exception(span, exc)
 
     def close(self) -> None:
-        self._stop_event.set()
-        self._refresh_thread.join()
+        if self._refresh_thread is not None:
+            self._stop_event.set()
+            self._refresh_thread.join()
+
+        zero_memory(self._wrapped)
 
         with self._gate:
             outgoing = self._current

@@ -1,6 +1,6 @@
 """Python port of HkdfGuard.DataEncryptionKey/KeyRing.cs.
 
-Tracks IDataProtectionKey instances by version for highly concurrent workloads. get is served
+Tracks IDataEncryptionKey instances by version for highly concurrent workloads. get is served
 straight off a plain dict - CPython dict reads/writes are already atomic under the GIL, so the
 hot read path never blocks and needs no separate lock (the direct analogue of the .NET original's
 lock-free ConcurrentDictionary read) - no telemetry on that path either, only on a miss, since
@@ -17,7 +17,7 @@ to designate one, so it can never fall out of sync with what's actually register
 import threading
 from typing import Self
 
-from hkdfguard_abstractions import IDataProtectionKey, IDataProtector, IEncryptedFormatProvider
+from hkdfguard_abstractions import IDataEncryptionKey, IDataProtector, IEncryptedFormatProvider
 from hkdfguard_diagnostics import ActivityNames, AttributeNames, ComponentTelemetry, HkdfGuardTelemetry
 
 from .protector.data_protector import DataProtector
@@ -28,7 +28,7 @@ _TELEMETRY = HkdfGuardTelemetry.DATA_PROTECTION
 class KeyRing:
     def __init__(self, format_provider: IEncryptedFormatProvider) -> None:
         self._format_provider = format_provider
-        self._keys_by_version: dict[int, IDataProtectionKey] = {}
+        self._keys_by_version: dict[int, IDataEncryptionKey] = {}
         self._add_gate = threading.Lock()
         self._current_version: int | None = None
 
@@ -44,7 +44,7 @@ class KeyRing:
             raise ValueError("No current version has been set. Add a key first.")
         return current
 
-    def add(self, version: int, key: IDataProtectionKey) -> None:
+    def add(self, version: int, key: IDataEncryptionKey) -> None:
         """Registers a key for the given version. If version is higher than every version
         registered so far, it intrinsically becomes the new current_version.
 
@@ -73,7 +73,7 @@ class KeyRing:
                 ComponentTelemetry.record_exception(span, exc)
                 raise
 
-    def get(self, version: int) -> IDataProtectionKey:
+    def get(self, version: int) -> IDataEncryptionKey:
         """Retrieves the key registered for the given version.
 
         Raises KeyError if no key is registered for this version.
@@ -87,15 +87,15 @@ class KeyRing:
             ComponentTelemetry.record_exception(span, not_found)
         raise not_found
 
-    def try_get(self, version: int) -> IDataProtectionKey | None:
+    def try_get(self, version: int) -> IDataEncryptionKey | None:
         """Attempts to retrieve the key registered for the given version without raising - for
         the high-frequency hot path, where exception overhead (and telemetry) on a routine miss
         is unacceptable.
         """
         return self._keys_by_version.get(version)
 
-    def get_current(self) -> tuple[int, IDataProtectionKey]:
-        """Retrieves current_version together with its IDataProtectionKey atomically - what
+    def get_current(self) -> tuple[int, IDataEncryptionKey]:
+        """Retrieves current_version together with its IDataEncryptionKey atomically - what
         encrypt-side operations (e.g. DataProtector.encrypt) resolve fresh on every call, so they
         always reflect the latest rotation rather than a version captured once at construction.
 

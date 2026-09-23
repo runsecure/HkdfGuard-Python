@@ -36,6 +36,14 @@ class ICryptoProvider(ABC):
     def close(self) -> None:
         """Releases the underlying cryptographic session."""
 
+    @abstractmethod
+    def get_encrypted_allocation_length(self, length: int) -> int:
+        """The result buffer size encrypt needs to hold a plaintext of the given length."""
+
+    @abstractmethod
+    def get_decrypted_allocation_length(self, length: int) -> int:
+        """The result buffer size decrypt needs to hold a ciphertext of the given length."""
+
     def __enter__(self) -> Self:
         return self
 

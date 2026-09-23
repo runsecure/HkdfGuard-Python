@@ -12,6 +12,7 @@ class FakeKeyWrapper(IKeyWrapper):
 
     def __init__(self) -> None:
         self.decrypt_call_count = 0
+        self.generate_and_wrap_call_count = 0
 
         #: When set, decrypt raises this instead of revealing a key.
         self.throw_on_decrypt: BaseException | None = None
@@ -28,4 +29,7 @@ class FakeKeyWrapper(IKeyWrapper):
         return len(result)
 
     def generate_and_wrap(self, result: bytearray) -> int:
-        raise NotImplementedError
+        self.generate_and_wrap_call_count += 1
+        key = secrets.token_bytes(32)
+        result[: len(key)] = key
+        return len(key)

@@ -1,6 +1,6 @@
 """Python port of HkdfGuard.Cache/ProtectedCache.cs.
 
-Default IProtectedCache. Backed by a single, already-built IDataProtectionKey - every add/
+Default IProtectedCache. Backed by a single, already-built IDataEncryptionKey - every add/
 add_or_update encrypts through it (see ProtectedCacheBase), every decrypt reveals through it. add
 uses _try_add_encrypted as its atomicity gate so a duplicate name is rejected even under
 concurrent callers; add_or_update's upsert and decrypt's reads are otherwise lock-free, so this
@@ -15,7 +15,7 @@ existing span/CacheMetrics.OPERATIONS telemetry.
 
 import logging
 
-from hkdfguard_abstractions import IDataProtectionKey, IProtectedCache, ProtectedCacheBase
+from hkdfguard_abstractions import IDataEncryptionKey, IProtectedCache, ProtectedCacheBase
 from hkdfguard_diagnostics import (
     ActivityNames,
     AttributeNames,
@@ -30,8 +30,8 @@ _TELEMETRY = HkdfGuardTelemetry.CACHE
 
 
 class ProtectedCache(ProtectedCacheBase, IProtectedCache):
-    def __init__(self, data_protection_key: IDataProtectionKey, logger: logging.Logger | None = None) -> None:
-        super().__init__(data_protection_key)
+    def __init__(self, data_encryption_key: IDataEncryptionKey, logger: logging.Logger | None = None) -> None:
+        super().__init__(data_encryption_key)
         self._logger = logger
 
     def add(self, name: str, plaintext: bytearray) -> None:

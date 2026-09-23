@@ -7,7 +7,7 @@ from .protected_read_only_cache import IProtectedReadOnlyCache
 
 class IProtectedCache(IProtectedReadOnlyCache):
     """Read/write surface of a highly concurrent name -> encrypted-value cache backed by a
-    single IDataProtectionKey. add/add_or_update protect and store plaintext under a name; the
+    single IDataEncryptionKey. add/add_or_update protect and store plaintext under a name; the
     read surface (decrypt/decrypt_str/try_get_max_decrypted_length) is inherited from
     IProtectedReadOnlyCache. Nothing here ever holds plaintext beyond the duration of a single
     add/add_or_update call - only the encrypted bytes are retained internally.

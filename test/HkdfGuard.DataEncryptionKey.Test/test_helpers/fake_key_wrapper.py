@@ -5,9 +5,9 @@ from hkdfguard_abstractions import IKeyWrapper
 
 class FakeKeyWrapper(IKeyWrapper):
     """An IKeyWrapper that always reveals/generates the same fixed key, tracking how many times
-    decrypt/generate_and_wrap were called - isolates KeyWrappedDataEncryptionKey/
-    EphemeralDataEncryptionKey/KeyRing tests from the real native KMS machinery while still
-    exercising real AES-GCM via a real ICryptoProvider.
+    decrypt/generate_and_wrap were called - isolates KeyWrappedDataEncryptionKey/KeyRing tests
+    from the real native KMS machinery while still exercising real AES-GCM via a real
+    ICryptoProvider.
     """
 
     def __init__(self, key: bytes) -> None:

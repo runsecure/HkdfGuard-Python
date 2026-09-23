@@ -55,3 +55,15 @@ def test_close_closes_the_current_session_and_stops_the_background_thread() -> N
 
     # Only the constructor's eager build - the background thread must not have ticked after close.
     assert wrapper.decrypt_call_count == 1
+
+
+def test_get_encrypted_allocation_length_adds_nonce_and_tag_overhead() -> None:
+    wrapper = FakeKeyWrapper()
+    with AesGcmCryptoProvider(wrapper, b"wrapped", 60) as provider:
+        assert provider.get_encrypted_allocation_length(10) == 10 + 12 + 16
+
+
+def test_get_decrypted_allocation_length_removes_nonce_and_tag_overhead() -> None:
+    wrapper = FakeKeyWrapper()
+    with AesGcmCryptoProvider(wrapper, b"wrapped", 60) as provider:
+        assert provider.get_decrypted_allocation_length(10 + 12 + 16) == 10

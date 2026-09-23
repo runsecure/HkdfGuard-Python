@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 
 class IProtectedReadOnlyCache(ABC):
     """Read surface of a highly concurrent name -> encrypted-value cache backed by a single
-    IDataProtectionKey. Names are compared case-insensitively. decrypt/decrypt_str reveal a
+    IDataEncryptionKey. Names are compared case-insensitively. decrypt/decrypt_str reveal a
     stored value, returning 0/None for a missing name rather than raising. Nothing here ever
     holds plaintext beyond the duration of a single call - only the encrypted bytes are retained
     internally.

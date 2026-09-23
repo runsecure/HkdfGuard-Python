@@ -5,14 +5,13 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from hkdfguard_cryptosession_aesgcm256 import AesGcmCryptoProvider
+from hkdfguard_cryptosession_aesgcm256 import AesGcmCryptoProviderFactory
 from hkdfguard_dataencryptionkey import KeyRingBuilder
 from test_helpers.fake_key_wrapper import FakeKeyWrapper
+from test_helpers.recording_crypto_provider_factory import RecordingCryptoProviderFactory
 from test_helpers.recording_format_provider import RecordingFormatProvider
 
-
-def _session_provider_factory(key_wrapper, wrapped):
-    return AesGcmCryptoProvider(key_wrapper, wrapped, 60)
+_CRYPTO_PROVIDER_FACTORY = AesGcmCryptoProviderFactory()
 
 
 def test_with_service_name_sets_service_name() -> None:
@@ -48,14 +47,24 @@ def test_with_key_rotation_days_out_of_range_raises(key_rotation_days: int) -> N
 
 
 def test_build_without_key_wrapper_raises() -> None:
-    builder = KeyRingBuilder().with_session_provider_factory(_session_provider_factory).with_ephemeral_key(1)
+    builder = (
+        KeyRingBuilder()
+        .with_crypto_provider_factory(_CRYPTO_PROVIDER_FACTORY)
+        .with_cached_key_expiry(60)
+        .with_ephemeral_key(1)
+    )
 
     with pytest.raises(ValueError):
         builder.build()
 
 
-def test_build_without_session_provider_factory_raises() -> None:
-    builder = KeyRingBuilder().with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32))).with_ephemeral_key(1)
+def test_build_without_crypto_provider_factory_raises() -> None:
+    builder = (
+        KeyRingBuilder()
+        .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
+        .with_cached_key_expiry(60)
+        .with_ephemeral_key(1)
+    )
 
     with pytest.raises(ValueError):
         builder.build()
@@ -65,7 +74,20 @@ def test_build_without_key_files_or_ephemeral_keys_raises() -> None:
     builder = (
         KeyRingBuilder()
         .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
-        .with_session_provider_factory(_session_provider_factory)
+        .with_crypto_provider_factory(_CRYPTO_PROVIDER_FACTORY)
+        .with_cached_key_expiry(60)
+    )
+
+    with pytest.raises(ValueError):
+        builder.build()
+
+
+def test_build_without_cached_key_expiry_raises() -> None:
+    builder = (
+        KeyRingBuilder()
+        .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
+        .with_crypto_provider_factory(_CRYPTO_PROVIDER_FACTORY)
+        .with_ephemeral_key(1)
     )
 
     with pytest.raises(ValueError):
@@ -80,7 +102,8 @@ def test_build_with_key_file_registers_version_from_file() -> None:
         ring = (
             KeyRingBuilder()
             .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
-            .with_session_provider_factory(_session_provider_factory)
+            .with_crypto_provider_factory(_CRYPTO_PROVIDER_FACTORY)
+            .with_cached_key_expiry(60)
             .with_key_file(1, str(path))
             .build()
         )
@@ -98,7 +121,8 @@ def test_build_with_multiple_key_files_highest_version_becomes_current() -> None
         ring = (
             KeyRingBuilder()
             .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
-            .with_session_provider_factory(_session_provider_factory)
+            .with_crypto_provider_factory(_CRYPTO_PROVIDER_FACTORY)
+            .with_cached_key_expiry(60)
             .with_key_file(1, str(path1))
             .with_key_file(2, str(path2))
             .build()
@@ -111,7 +135,8 @@ def test_build_with_ephemeral_key_registers_version() -> None:
     ring = (
         KeyRingBuilder()
         .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
-        .with_session_provider_factory(_session_provider_factory)
+        .with_crypto_provider_factory(_CRYPTO_PROVIDER_FACTORY)
+        .with_cached_key_expiry(60)
         .with_ephemeral_key(1)
         .build()
     )
@@ -123,7 +148,8 @@ def test_build_with_ephemeral_key_produces_a_working_key() -> None:
     ring = (
         KeyRingBuilder()
         .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
-        .with_session_provider_factory(_session_provider_factory)
+        .with_crypto_provider_factory(_CRYPTO_PROVIDER_FACTORY)
+        .with_cached_key_expiry(60)
         .with_ephemeral_key(1)
         .build()
     )
@@ -148,7 +174,8 @@ def test_build_with_key_file_and_higher_version_ephemeral_key_ephemeral_becomes_
         ring = (
             KeyRingBuilder()
             .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
-            .with_session_provider_factory(_session_provider_factory)
+            .with_crypto_provider_factory(_CRYPTO_PROVIDER_FACTORY)
+            .with_cached_key_expiry(60)
             .with_key_file(1, str(path))
             .with_ephemeral_key(2)
             .build()
@@ -163,7 +190,8 @@ def test_build_uses_configured_format_provider() -> None:
     ring = (
         KeyRingBuilder()
         .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
-        .with_session_provider_factory(_session_provider_factory)
+        .with_crypto_provider_factory(_CRYPTO_PROVIDER_FACTORY)
+        .with_cached_key_expiry(60)
         .with_ephemeral_key(1)
         .with_format_provider(recording_format_provider)
         .build()
@@ -172,3 +200,40 @@ def test_build_uses_configured_format_provider() -> None:
     ring.create_protector("purpose").encrypt("hello")
 
     assert recording_format_provider.format_called
+
+
+def test_build_with_key_file_passes_cached_key_expiry_to_the_crypto_provider_factory() -> None:
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        path = Path(tmp_dir) / "key.bin"
+        path.write_bytes(b"wrapped")
+        recording_factory = RecordingCryptoProviderFactory()
+
+        (
+            KeyRingBuilder()
+            .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
+            .with_crypto_provider_factory(recording_factory)
+            .with_cached_key_expiry(123)
+            .with_key_file(1, str(path))
+            .build()
+        )
+
+        assert recording_factory.create_expiry_seconds_calls == [123]
+
+
+def test_build_with_ephemeral_key_passes_cached_key_expiry_rather_than_version_to_the_crypto_provider_factory() -> (
+    None
+):
+    # Regression test: create_ephemeral used to be called with the KeyRing version instead of
+    # cached_key_expiry - a version of 1 would silently become a 1-second session lifetime.
+    recording_factory = RecordingCryptoProviderFactory()
+
+    (
+        KeyRingBuilder()
+        .with_key_wrapper(FakeKeyWrapper(secrets.token_bytes(32)))
+        .with_crypto_provider_factory(recording_factory)
+        .with_cached_key_expiry(123)
+        .with_ephemeral_key(42)
+        .build()
+    )
+
+    assert recording_factory.create_ephemeral_expiry_seconds_calls == [123]

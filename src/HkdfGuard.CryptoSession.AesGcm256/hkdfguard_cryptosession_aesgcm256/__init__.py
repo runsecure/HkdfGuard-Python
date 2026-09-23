@@ -2,8 +2,10 @@
 HkdfGuard.CryptoSession.AesGcm256.
 """
 
+from .factory import AesGcmCryptoProviderFactory
 from .provider import AesGcmCryptoProvider
 
 __all__ = [
     "AesGcmCryptoProvider",
+    "AesGcmCryptoProviderFactory",
 ]

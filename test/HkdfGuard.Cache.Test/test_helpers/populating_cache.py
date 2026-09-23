@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 
-from hkdfguard_abstractions import IDataProtectionKey, ProtectedCacheBase
+from hkdfguard_abstractions import IDataEncryptionKey, ProtectedCacheBase
 
 
 class PopulatingCache(ProtectedCacheBase):
@@ -11,8 +11,8 @@ class PopulatingCache(ProtectedCacheBase):
     real external source.
     """
 
-    def __init__(self, data_protection_key: IDataProtectionKey) -> None:
-        super().__init__(data_protection_key)
+    def __init__(self, data_encryption_key: IDataEncryptionKey) -> None:
+        super().__init__(data_encryption_key)
         self.try_populate_call_count = 0
         self.on_try_populate: Callable[[str], bool] | None = None
 

@@ -3,7 +3,7 @@
 import secrets
 
 import pytest
-from hkdfguard_abstractions import IDataProtectionKey
+from hkdfguard_abstractions import IDataEncryptionKey
 from hkdfguard_cryptosession_aesgcm256 import AesGcmCryptoProvider
 from hkdfguard_dataencryptionkey import DefaultFormatProvider, KeyRing, KeyWrappedDataEncryptionKey
 from test_helpers.fake_key_wrapper import FakeKeyWrapper
@@ -11,7 +11,7 @@ from test_helpers.recording_format_provider import RecordingFormatProvider
 from test_helpers.sensitive_logging_scope import sensitive_logging_scope
 
 
-def _create_fake_key() -> IDataProtectionKey:
+def _create_fake_key() -> IDataEncryptionKey:
     return KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(FakeKeyWrapper(secrets.token_bytes(32)), b"wrapped", 60))
 
 

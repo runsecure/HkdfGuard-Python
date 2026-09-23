@@ -3,7 +3,8 @@ HkdfGuard.Abstractions - only the members needed by ported dependents exist so f
 """
 
 from .crypto_provider import ICryptoProvider
-from .data_protection_key import IDataProtectionKey
+from .crypto_provider_factory import ICryptoProviderFactory
+from .data_encryption_key import IDataEncryptionKey
 from .data_protector import IDataProtector
 from .encrypted_format_provider import IEncryptedFormatProvider
 from .errors import HkdfGuardCryptographicError
@@ -16,7 +17,8 @@ from .protected_read_only_cache import IProtectedReadOnlyCache
 __all__ = [
     "HkdfGuardCryptographicError",
     "ICryptoProvider",
-    "IDataProtectionKey",
+    "ICryptoProviderFactory",
+    "IDataEncryptionKey",
     "IDataProtector",
     "IEncryptedFormatProvider",
     "IKeyWrapper",

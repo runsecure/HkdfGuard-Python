@@ -1,7 +1,7 @@
 [project]
 name = "hkdfguard-cache"
 version = "0.1.0"
-description = "Highly concurrent, encrypted in-memory name/value cache for HkdfGuard, backed by a single IDataProtectionKey. Python port of HkdfGuard.Cache."
+description = "Highly concurrent, encrypted in-memory name/value cache for HkdfGuard, backed by a single IDataEncryptionKey. Python port of HkdfGuard.Cache."
 requires-python = ">=3.11"
 dependencies = [
     "hkdfguard-abstractions",

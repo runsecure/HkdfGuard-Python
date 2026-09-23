@@ -10,8 +10,8 @@ from test_helpers.populating_cache import PopulatingCache
 
 def _create_cache() -> PopulatingCache:
     wrapper = FakeKeyWrapper(secrets.token_bytes(32))
-    data_protection_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
-    return PopulatingCache(data_protection_key)
+    data_encryption_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
+    return PopulatingCache(data_encryption_key)
 
 
 def test_decrypt_on_miss_calls_try_populate_and_returns_populated_value() -> None:

@@ -1,7 +1,7 @@
 [project]
 name = "hkdfguard-dataencryptionkey"
 version = "0.1.0"
-description = "Data-encryption-key management for HkdfGuard: wrapped/ephemeral/pipeline keys, a versioned KeyRing, and a name-scoped IDataProtector. Python port of HkdfGuard.DataEncryptionKey."
+description = "Data-encryption-key management for HkdfGuard: wrapped/pipeline keys, a versioned KeyRing, and a name-scoped IDataProtector. Python port of HkdfGuard.DataEncryptionKey."
 requires-python = ">=3.11"
 dependencies = [
     "hkdfguard-abstractions",

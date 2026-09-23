@@ -13,8 +13,8 @@ from test_helpers.throwing_read_only_cache import ThrowingReadOnlyCache
 
 def _create_cache() -> ProtectedCache:
     wrapper = FakeKeyWrapper(secrets.token_bytes(32))
-    data_protection_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
-    return ProtectedCache(data_protection_key)
+    data_encryption_key = KeyWrappedDataEncryptionKey(AesGcmCryptoProvider(wrapper, b"wrapped", 60))
+    return ProtectedCache(data_encryption_key)
 
 
 def test_add_returns_same_instance_for_fluent_chaining() -> None:

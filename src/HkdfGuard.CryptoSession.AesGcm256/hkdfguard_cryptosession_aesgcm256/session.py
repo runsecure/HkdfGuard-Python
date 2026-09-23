@@ -21,8 +21,8 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from hkdfguard_abstractions.array_utility import is_null_or_empty, zero_memory
 from hkdfguard_diagnostics import ActivityNames, AttributeNames, ComponentTelemetry, HkdfGuardTelemetry
 
-_TAG_SIZE = 16
-_NONCE_SIZE = 12
+TAG_SIZE = 16
+NONCE_SIZE = 12
 _KEY_LENGTH = 32
 
 _TELEMETRY = HkdfGuardTelemetry.CRYPTO_SESSION_AES_GCM256
@@ -79,16 +79,16 @@ class AesGcmCryptoSession:
         if is_null_or_empty(plaintext):
             raise ValueError("Plaintext must not be empty or all zero.")
 
-        total_length = _NONCE_SIZE + len(plaintext) + _TAG_SIZE
+        total_length = NONCE_SIZE + len(plaintext) + TAG_SIZE
         if len(result) < total_length:
             raise ValueError("Result buffer too small.")
 
         # Layout: [nonce | ciphertext | tag]
-        nonce = secrets.token_bytes(_NONCE_SIZE)
+        nonce = secrets.token_bytes(NONCE_SIZE)
         ciphertext_and_tag = self._aes.encrypt(nonce, bytes(plaintext), aad)
 
-        result[:_NONCE_SIZE] = nonce
-        result[_NONCE_SIZE:total_length] = ciphertext_and_tag
+        result[:NONCE_SIZE] = nonce
+        result[NONCE_SIZE:total_length] = ciphertext_and_tag
 
         return total_length
 
@@ -111,15 +111,15 @@ class AesGcmCryptoSession:
             raise ValueError("Operation on a closed AesGcmCryptoSession.")
         if is_null_or_empty(ciphertext):
             raise ValueError("Ciphertext must not be empty or all zero.")
-        if len(ciphertext) < _NONCE_SIZE + _TAG_SIZE:
+        if len(ciphertext) < NONCE_SIZE + TAG_SIZE:
             raise ValueError("Ciphertext too short.")
 
-        result_length = len(ciphertext) - _NONCE_SIZE - _TAG_SIZE
+        result_length = len(ciphertext) - NONCE_SIZE - TAG_SIZE
         if len(result) < result_length:
             raise ValueError("Result buffer too small.")
 
-        nonce = ciphertext[:_NONCE_SIZE]
-        ciphertext_and_tag = ciphertext[_NONCE_SIZE:]
+        nonce = ciphertext[:NONCE_SIZE]
+        ciphertext_and_tag = ciphertext[NONCE_SIZE:]
 
         # Raises cryptography.exceptions.InvalidTag on a tampered ciphertext or mismatched aad -
         # the Python analogue of .NET's AuthenticationTagMismatchException.

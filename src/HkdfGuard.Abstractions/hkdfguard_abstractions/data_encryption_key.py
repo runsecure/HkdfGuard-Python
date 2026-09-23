@@ -1,9 +1,9 @@
-"""Python port of HkdfGuard.Abstractions/IDataProtectionKey.cs."""
+"""Python port of HkdfGuard.Abstractions/IDataEncryptionKey.cs."""
 
 from abc import ABC, abstractmethod
 
 
-class IDataProtectionKey(ABC):
+class IDataEncryptionKey(ABC):
     @abstractmethod
     def encrypt(self, plaintext: bytearray, aad: bytes = b"") -> bytes:
         """Protects an encryption key. Returns the encrypted key, ready to be stored. plaintext

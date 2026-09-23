@@ -15,7 +15,7 @@ from abc import ABC
 from hkdfguard_diagnostics import ActivityNames, AttributeNames, ComponentTelemetry, HkdfGuardTelemetry
 
 from .array_utility import zero_memory
-from .data_protection_key import IDataProtectionKey
+from .data_encryption_key import IDataEncryptionKey
 from .protected_read_only_cache import IProtectedReadOnlyCache
 
 _TELEMETRY = HkdfGuardTelemetry.ROOT
@@ -23,7 +23,7 @@ _TELEMETRY = HkdfGuardTelemetry.ROOT
 
 class ProtectedCacheBase(IProtectedReadOnlyCache, ABC):
     """Shared IProtectedReadOnlyCache plumbing for every cache in this library: a single
-    IDataProtectionKey, a dict[str, bytes] of encrypted bytes keyed case-insensitively, and the
+    IDataEncryptionKey, a dict[str, bytes] of encrypted bytes keyed case-insensitively, and the
     encrypt/decrypt/telemetry logic every concrete cache needs. decrypt/decrypt_str/
     try_get_max_decrypted_length fall back to _try_populate on a miss before giving up - the
     default implementation here just returns False (nothing to pull from), but a subclass backed
@@ -32,8 +32,8 @@ class ProtectedCacheBase(IProtectedReadOnlyCache, ABC):
     duration of a single call.
     """
 
-    def __init__(self, data_protection_key: IDataProtectionKey) -> None:
-        self._data_protection_key = data_protection_key
+    def __init__(self, data_encryption_key: IDataEncryptionKey) -> None:
+        self._data_encryption_key = data_encryption_key
         self._encrypted: dict[str, bytes] = {}
 
     def _try_populate(self, name: str) -> bool:
@@ -52,7 +52,7 @@ class ProtectedCacheBase(IProtectedReadOnlyCache, ABC):
                 if encrypted is None:
                     return 0
 
-                return self._data_protection_key.decrypt(encrypted, result)
+                return self._data_encryption_key.decrypt(encrypted, result)
             except Exception as exc:
                 ComponentTelemetry.record_exception(span, exc)
                 raise
@@ -69,7 +69,7 @@ class ProtectedCacheBase(IProtectedReadOnlyCache, ABC):
                 # len(encrypted) is a safe upper bound for the decrypted UTF-8 byte count.
                 plaintext_bytes = bytearray(len(encrypted))
                 try:
-                    decrypted_length = self._data_protection_key.decrypt(encrypted, plaintext_bytes)
+                    decrypted_length = self._data_encryption_key.decrypt(encrypted, plaintext_bytes)
                     return bytes(plaintext_bytes[:decrypted_length]).decode("utf-8")
                 finally:
                     zero_memory(plaintext_bytes)
@@ -106,10 +106,10 @@ class ProtectedCacheBase(IProtectedReadOnlyCache, ABC):
         self._encrypted[name.casefold()] = encrypted
 
     def _encrypt(self, plaintext: bytearray) -> bytes:
-        """Encrypts plaintext through this cache's IDataProtectionKey."""
-        return self._data_protection_key.encrypt(plaintext)
+        """Encrypts plaintext through this cache's IDataEncryptionKey."""
+        return self._data_encryption_key.encrypt(plaintext)
 
     def _encrypt_str(self, plaintext: str) -> bytes:
-        """Encrypts plaintext (as UTF-8 bytes) through this cache's IDataProtectionKey."""
+        """Encrypts plaintext (as UTF-8 bytes) through this cache's IDataEncryptionKey."""
         plaintext_bytes = bytearray(plaintext.encode("utf-8"))
-        return self._data_protection_key.encrypt(plaintext_bytes)
+        return self._data_encryption_key.encrypt(plaintext_bytes)
